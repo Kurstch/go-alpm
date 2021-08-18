@@ -13,10 +13,12 @@ import "unsafe"
 
 // Init initializes alpm handle
 func Initialize(root, dbpath string) (*Handle, error) {
-	cRoot := C.CString(root)
-	cDBPath := C.CString(dbpath)
-	var cErr C.alpm_errno_t
-	h := C.alpm_initialize(cRoot, cDBPath, &cErr)
+	var (
+		cRoot   = C.CString(root)
+		cDBPath = C.CString(dbpath)
+		cErr    C.alpm_errno_t
+		h       = C.alpm_initialize(cRoot, cDBPath, &cErr)
+	)
 
 	defer C.free(unsafe.Pointer(cRoot))
 	defer C.free(unsafe.Pointer(cDBPath))
@@ -33,7 +35,9 @@ func (h *Handle) Release() error {
 	if er := C.alpm_release(h.ptr); er != 0 {
 		return Error(er)
 	}
+
 	h.ptr = nil
+
 	return nil
 }
 
@@ -45,6 +49,7 @@ func (h *Handle) LastError() error {
 			return Error(cErr)
 		}
 	}
+
 	return nil
 }
 

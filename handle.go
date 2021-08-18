@@ -37,6 +37,7 @@ func (h *Handle) optionGetList(f func(*C.alpm_handle_t) *C.alpm_list_t) (StringL
 	if alpmList == nil {
 		return goList, h.LastError()
 	}
+
 	return goList, nil
 }
 
@@ -46,45 +47,53 @@ func (h *Handle) optionSetList(hookDirs []string, f func(*C.alpm_handle_t, *C.al
 	for _, dir := range hookDirs {
 		cDir := C.CString(dir)
 		list = C.alpm_list_add(list, unsafe.Pointer(cDir))
+
 		defer C.free(unsafe.Pointer(cDir))
 	}
 
-	ok := f(h.ptr, list)
-	if ok < 0 {
+	if ok := f(h.ptr, list); ok < 0 {
 		return h.LastError()
 	}
+
 	return nil
 }
 
 func (h *Handle) optionAddList(hookDir string, f func(*C.alpm_handle_t, *C.char) C.int) error {
 	cHookDir := C.CString(hookDir)
+
 	defer C.free(unsafe.Pointer(cHookDir))
-	ok := f(h.ptr, cHookDir)
-	if ok < 0 {
+
+	if ok := f(h.ptr, cHookDir); ok < 0 {
 		return h.LastError()
 	}
+
 	return nil
 }
 
 func (h *Handle) optionRemoveList(dir string, f func(*C.alpm_handle_t, *C.char) C.int) (bool, error) {
 	cDir := C.CString(dir)
-	ok := f(h.ptr, cDir)
+
 	defer C.free(unsafe.Pointer(cDir))
+
+	ok := f(h.ptr, cDir)
 	if ok < 0 {
-		return ok == 1, h.LastError()
+		return false, h.LastError()
 	}
+
 	return ok == 1, nil
 }
 
 func (h *Handle) optionMatchList(dir string, f func(*C.alpm_handle_t, *C.char) C.int) (bool, error) {
 	cDir := C.CString(dir)
-	ok := f(h.ptr, cDir)
+
 	defer C.free(unsafe.Pointer(cDir))
-	if ok == 0 {
+
+	if ok := f(h.ptr, cDir); ok == 0 {
 		return true, nil
 	} else if ok == C.FNM_NOMATCH {
 		return false, h.LastError()
 	}
+
 	return false, nil
 }
 
@@ -92,6 +101,9 @@ func (h *Handle) optionMatchList(dir string, f func(*C.alpm_handle_t, *C.char) C
 func (h *Handle) optionGetStr(f func(*C.alpm_handle_t) *C.char) (string, error) {
 	cStr := f(h.ptr)
 	str := C.GoString(cStr)
+
+	defer C.free(unsafe.Pointer(cStr))
+
 	if cStr == nil {
 		return str, h.LastError()
 	}
@@ -101,12 +113,13 @@ func (h *Handle) optionGetStr(f func(*C.alpm_handle_t) *C.char) (string, error) 
 
 func (h *Handle) optionSetStr(str string, f func(*C.alpm_handle_t, *C.char) C.int) error {
 	cStr := C.CString(str)
-	defer C.free(unsafe.Pointer(cStr))
-	ok := f(h.ptr, cStr)
 
-	if ok < 0 {
+	defer C.free(unsafe.Pointer(cStr))
+
+	if ok := f(h.ptr, cStr); ok < 0 {
 		return h.LastError()
 	}
+
 	return nil
 }
 
@@ -206,15 +219,16 @@ func (h *Handle) SetGPGDir(str string) error {
 
 func (h *Handle) UseSyslog() (bool, error) {
 	ok := C.alpm_option_get_usesyslog(h.ptr)
-	b := false
 
 	if ok > 0 {
-		b = true
+		return true, nil
 	}
+
 	if ok < 0 {
-		return b, h.LastError()
+		return false, h.LastError()
 	}
-	return b, nil
+
+	return false, nil
 }
 
 func (h *Handle) SetUseSyslog(value bool) error {
@@ -223,10 +237,10 @@ func (h *Handle) SetUseSyslog(value bool) error {
 		intValue = 1
 	}
 
-	ok := C.alpm_option_set_usesyslog(h.ptr, intValue)
-	if ok < 0 {
+	if ok := C.alpm_option_set_usesyslog(h.ptr, intValue); ok < 0 {
 		return h.LastError()
 	}
+
 	return nil
 }
 
@@ -356,6 +370,7 @@ func (h *Handle) AssumeInstalled() (DependList, error) {
 	if alpmList == nil {
 		return depList, h.LastError()
 	}
+
 	return depList, nil
 }
 
@@ -363,67 +378,12 @@ func (h *Handle) AddAssumeInstalled(dep Depend) error {
 	cDep := convertCDepend(dep)
 	defer freeCDepend(cDep)
 
-	ok := C.alpm_option_add_assumeinstalled(h.ptr, cDep)
-	if ok < 0 {
+	if ok := C.alpm_option_add_assumeinstalled(h.ptr, cDep); ok < 0 {
 		return h.LastError()
 	}
+
 	return nil
 }
-
-// TODO: Fix
-// func (h *Handle) SetAssumeInstalled(deps []Depend) error {
-// 	//calling this function the first time causes alpm to set the
-// 	//assumeinstalled list to a list containing go allocated alpm_depend_t's
-// 	//this is bad because alpm might at some point tree to free them
-// 	//i believe this is whats causing this function to misbhave
-// 	//although i am not 100% sure
-// 	//maybe using C.malloc to make the struct could fix the problem
-// 	//pacamn does not use alpm_option_set_assumeinstalled in its source
-// 	//code so anybody using this should beable to do file without it
-// 	//although for the sake of completeness it would be nice to have this
-// 	//working
-// 	panic("This function (SetAssumeInstalled) does not work properly, please do not use. See source code for more details")
-// 	var list *C.alpm_list_t
-
-// 	for _, dep := range deps {
-// 		cDep := convertCDepend(dep)
-// 		defer freeCDepend(cDep)
-// 		list = C.alpm_list_add(list, unsafe.Pointer(cDep))
-// 	}
-
-// 	ok := C.alpm_option_set_assumeinstalled(h.ptr, list)
-// 	if ok < 0 {
-// 		return h.LastError()
-// 	}
-// 	return nil
-
-// }
-
-// TODO: Fix
-//  func (h *Handle) RemoveAssumeInstalled(dep Depend) (bool, error) {
-// internally alpm uses alpm_list_remove to remove a alpm_depend_t from
-// the list
-// I believe this function considers items equal if they are the same
-// item in memeory, not just the same data
-// every time we convert a go Depend to a alpm_depend_c we create a new
-// instance of a alpm_depend_c
-// this means that if you add a Depend using AddAssumeInstalled then try
-// to remove it using the same Depend c will consider them different
-// items and not remove them
-// pacamn does not use alpm_option_set_assumeinstalled in its source
-// code so anybody using this should beable to do file without it
-// although for the sake of completeness it would be nice to have this
-// working
-// panic("This function (RemoveAssumeInstalled) does not work properly, please do not use. See source code for more details")
-// cDep := convertCDepend(dep)
-// defer freeCDepend(cDep)
-
-// 	ok := C.alpm_option_remove_assumeinstalled(h.ptr, cDep)
-// 	if ok < 0 {
-// 		return ok == 1, h.LastError()
-// 	}
-// 	return ok == 1, nil
-// }
 
 // LocalDB returns the local database relative to the given handle.
 func (h *Handle) LocalDB() (IDB, error) {
@@ -431,6 +391,7 @@ func (h *Handle) LocalDB() (IDB, error) {
 	if db == nil {
 		return nil, h.LastError()
 	}
+
 	return &DB{db, *h}, nil
 }
 
@@ -440,21 +401,22 @@ func (h *Handle) SyncDBs() (IDBList, error) {
 	if dblist == nil {
 		return &DBList{nil, *h}, h.LastError()
 	}
-	dblistPtr := unsafe.Pointer(dblist)
-	return &DBList{(*list)(dblistPtr), *h}, nil
+
+	return &DBList{(*list)(unsafe.Pointer(dblist)), *h}, nil
 }
 
 func (h *Handle) CheckSpace() (bool, error) {
 	ok := C.alpm_option_get_checkspace(h.ptr)
-	b := false
 
 	if ok > 0 {
-		b = true
+		return true, nil
 	}
+
 	if ok < 0 {
-		return b, h.LastError()
+		return false, h.LastError()
 	}
-	return b, nil
+
+	return false, nil
 }
 
 func (h *Handle) SetCheckSpace(value bool) error {
@@ -463,10 +425,10 @@ func (h *Handle) SetCheckSpace(value bool) error {
 		cValue = 1
 	}
 
-	ok := C.alpm_option_set_checkspace(h.ptr, cValue)
-	if ok < 0 {
+	if ok := C.alpm_option_set_checkspace(h.ptr, cValue); ok < 0 {
 		return h.LastError()
 	}
+
 	return nil
 }
 
@@ -488,15 +450,15 @@ func (h *Handle) GetDefaultSigLevel() (SigLevel, error) {
 	if sigLevel < 0 {
 		return SigLevel(sigLevel), h.LastError()
 	}
+
 	return SigLevel(sigLevel), nil
 }
 
 func (h *Handle) SetDefaultSigLevel(siglevel SigLevel) error {
-	ok := C.alpm_option_set_default_siglevel(h.ptr, C.int(siglevel))
-
-	if ok < 0 {
+	if ok := C.alpm_option_set_default_siglevel(h.ptr, C.int(siglevel)); ok < 0 {
 		return h.LastError()
 	}
+
 	return nil
 }
 
@@ -506,33 +468,32 @@ func (h *Handle) GetLocalFileSigLevel() (SigLevel, error) {
 	if sigLevel < 0 {
 		return SigLevel(sigLevel), h.LastError()
 	}
+
 	return SigLevel(sigLevel), nil
 }
 
 func (h *Handle) SetLocalFileSigLevel(siglevel SigLevel) error {
-	ok := C.alpm_option_set_local_file_siglevel(h.ptr, C.int(siglevel))
-
-	if ok < 0 {
+	if ok := C.alpm_option_set_local_file_siglevel(h.ptr, C.int(siglevel)); ok < 0 {
 		return h.LastError()
 	}
+
 	return nil
 }
 
 func (h *Handle) GetRemoteFileSigLevel() (SigLevel, error) {
 	sigLevel := C.alpm_option_get_remote_file_siglevel(h.ptr)
-
 	if sigLevel < 0 {
 		return SigLevel(sigLevel), h.LastError()
 	}
+
 	return SigLevel(sigLevel), nil
 }
 
 func (h *Handle) SetRemoteFileSigLevel(siglevel SigLevel) error {
-	ok := C.alpm_option_set_remote_file_siglevel(h.ptr, C.int(siglevel))
-
-	if ok < 0 {
+	if ok := C.alpm_option_set_remote_file_siglevel(h.ptr, C.int(siglevel)); ok < 0 {
 		return h.LastError()
 	}
+
 	return nil
 }
 

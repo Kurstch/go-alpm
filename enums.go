@@ -21,6 +21,7 @@ func (r PkgReason) String() string {
 	case PkgReasonDepend:
 		return "Installed as a dependency of another package"
 	}
+
 	return ""
 }
 
@@ -58,6 +59,7 @@ func (mod DepMod) String() string {
 	case DepModLT:
 		return "<"
 	}
+
 	return ""
 }
 
@@ -79,7 +81,7 @@ const (
 )
 const SigUseDefault SigLevel = 1 << 30
 
-// Signature status
+// Signature status.
 type SigStatus int
 
 const (
@@ -141,14 +143,12 @@ const (
 	TransFlagNoDepVersion
 	TransFlagCascade
 	TransFlagRecurse
-	// 7 is missing
-	_
+	_ // 7 is missing.
 	TransFlagDBOnly
 	TransFlagAllDeps
 	TransFlagDownloadOnly
 	TransFlagNoScriptlets
-	// 12 is missing
-	_
+	_ // 12 is missing.
 	TransFlagNoConflicts
 	TransFlagNeeded
 	TransFlagAllExplicit

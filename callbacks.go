@@ -10,7 +10,12 @@ package alpm
 #include "callbacks.h"
 */
 import "C"
-import "unsafe"
+
+import (
+	"fmt"
+	"os"
+	"unsafe"
+)
 
 var DefaultLogLevel = LogWarning
 
@@ -27,7 +32,7 @@ var (
 
 func DefaultLogCallback(ctx interface{}, lvl LogLevel, s string) {
 	if lvl <= DefaultLogLevel {
-		print("go-alpm: ", s)
+		fmt.Fprintln(os.Stdout, "go-alpm: ", s)
 	}
 }
 

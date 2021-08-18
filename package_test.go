@@ -4,7 +4,7 @@
 //
 // MIT Licensed. See LICENSE for details.
 
-package alpm
+package alpm_test
 
 import (
 	"bytes"
@@ -12,10 +12,12 @@ import (
 	"testing"
 	"text/template"
 	"time"
+
+	"github.com/Jguer/go-alpm/v2"
 )
 
 // Auxiliary formatting
-const pkginfo_template = `
+const pkginfoTemplate = `
 Name         : {{ .Name }}
 Version      : {{ .Version }}
 Architecture : {{ .Architecture }}
@@ -41,10 +43,8 @@ Files        : {{ range .Files }}
                {{ .Name }} {{ .Size }}{{ end }}
 `
 
-var pkginfoTemplate *template.Template
-
 type PrettyPackage struct {
-	*Package
+	*alpm.Package
 }
 
 func (p PrettyPackage) PrettyBuildDate() string {
@@ -55,18 +55,16 @@ func (p PrettyPackage) PrettyInstallDate() string {
 	return p.InstallDate().Format(time.RFC1123)
 }
 
-func init() {
-	var er error
-	pkginfoTemplate, er = template.New("info").Parse(pkginfo_template)
+// Tests package attribute getters.
+func TestPkginfo(t *testing.T) {
+	t.Parallel()
+	pkginfoTemp, er := template.New("info").Parse(pkginfoTemplate)
 	if er != nil {
 		fmt.Printf("couldn't compile template: %s\n", er)
 		panic("template parsing error")
 	}
-}
 
-// Tests package attribute getters.
-func TestPkginfo(t *testing.T) {
-	h, er := Initialize(root, dbpath)
+	h, er := alpm.Initialize(root, dbpath)
 	defer h.Release()
 	if er != nil {
 		t.Errorf("Failed at alpm initialization: %s", er)
@@ -77,21 +75,22 @@ func TestPkginfo(t *testing.T) {
 
 	pkg := db.Pkg("glibc")
 	buf := bytes.NewBuffer(nil)
-	pkginfoTemplate.Execute(buf, PrettyPackage{pkg.(*Package)})
+	pkginfoTemp.Execute(buf, PrettyPackage{pkg.(*alpm.Package)})
 	t.Logf("%s...", buf.Bytes()[:1024])
 	t.Logf("Should ignore %t", pkg.ShouldIgnore())
 
 	pkg = db.Pkg("linux")
 	if pkg != nil {
 		buf = bytes.NewBuffer(nil)
-		pkginfoTemplate.Execute(buf, PrettyPackage{pkg.(*Package)})
+		pkginfoTemp.Execute(buf, PrettyPackage{pkg.(*alpm.Package)})
 		t.Logf("%s...", buf.Bytes()[:1024])
 		t.Logf("Should ignore %t", pkg.ShouldIgnore())
 	}
 }
 
 func TestPkgNoExist(t *testing.T) {
-	h, er := Initialize(root, dbpath)
+	t.Parallel()
+	h, er := alpm.Initialize(root, dbpath)
 	defer h.Release()
 	if er != nil {
 		t.Errorf("Failed at alpm initialization: %s", er)
@@ -106,7 +105,8 @@ func TestPkgNoExist(t *testing.T) {
 }
 
 func TestPkgFiles(t *testing.T) {
-	h, er := Initialize(root, dbpath)
+	t.Parallel()
+	h, er := alpm.Initialize(root, dbpath)
 	defer h.Release()
 	if er != nil {
 		t.Errorf("Failed at alpm initialization: %s", er)

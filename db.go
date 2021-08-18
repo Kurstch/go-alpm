@@ -44,6 +44,7 @@ func (l DBList) Slice() []IDB {
 		slice = append(slice, db)
 		return nil
 	})
+
 	return slice
 }
 
@@ -53,6 +54,7 @@ func (h *Handle) SyncDBByName(name string) (db IDB, err error) {
 	if err != nil {
 		return nil, err
 	}
+
 	_ = dblist.ForEach(func(b IDB) error {
 		if b.Name() == name {
 			db = b
@@ -60,21 +62,25 @@ func (h *Handle) SyncDBByName(name string) (db IDB, err error) {
 		}
 		return nil
 	})
+
 	if db != nil {
 		return db, nil
 	}
+
 	return nil, fmt.Errorf("database %s not found", name)
 }
 
 // RegisterSyncDB Loads a sync database with given name and signature check level.
 func (h *Handle) RegisterSyncDB(dbname string, siglevel SigLevel) (IDB, error) {
 	cName := C.CString(dbname)
+
 	defer C.free(unsafe.Pointer(cName))
 
 	db := C.alpm_register_syncdb(h.ptr, cName, C.int(siglevel))
 	if db == nil {
 		return nil, h.LastError()
 	}
+
 	return &DB{db, *h}, nil
 }
 
@@ -104,15 +110,19 @@ func (db *DB) Name() string {
 // Servers returns host server URL.
 func (db *DB) Servers() []string {
 	ptr := unsafe.Pointer(C.alpm_db_get_servers(db.ptr))
+
 	return StringList{(*list)(ptr)}.Slice()
 }
 
 // SetServers sets server list to use.
 func (db *DB) SetServers(servers []string) {
 	C.alpm_db_set_servers(db.ptr, nil)
+
 	for _, srv := range servers {
 		Csrv := C.CString(srv)
+
 		defer C.free(unsafe.Pointer(Csrv))
+
 		C.alpm_db_add_server(db.ptr, Csrv)
 	}
 }
@@ -120,7 +130,9 @@ func (db *DB) SetServers(servers []string) {
 // AddServers adds a string to the server list.
 func (db *DB) AddServer(server string) {
 	Csrv := C.CString(server)
+
 	defer C.free(unsafe.Pointer(Csrv))
+
 	C.alpm_db_add_server(db.ptr, Csrv)
 }
 
@@ -132,34 +144,43 @@ func (db *DB) SetUsage(usage Usage) {
 // Name searches a package in db.
 func (db *DB) Pkg(name string) IPackage {
 	cName := C.CString(name)
+
 	defer C.free(unsafe.Pointer(cName))
+
 	ptr := C.alpm_db_get_pkg(db.ptr, cName)
 	if ptr == nil {
 		return nil
 	}
+
 	return &Package{ptr, db.handle}
 }
 
 // PkgCachebyGroup returns a PackageList of packages belonging to a group
 func (l DBList) FindGroupPkgs(name string) IPackageList {
 	cName := C.CString(name)
+
 	defer C.free(unsafe.Pointer(cName))
+
 	pkglist := (*C.struct___alpm_list_t)(unsafe.Pointer(l.list))
 	pkgcache := (*list)(unsafe.Pointer(C.alpm_find_group_pkgs(pkglist, cName)))
+
 	return PackageList{pkgcache, l.handle}
 }
 
 // PkgCache returns the list of packages of the database
 func (db *DB) PkgCache() IPackageList {
 	pkgcache := (*list)(unsafe.Pointer(C.alpm_db_get_pkgcache(db.ptr)))
+
 	return PackageList{pkgcache, db.handle}
 }
 
 // Search returns a list of packages matching the targets.
 // In case of error the Package List will be nil
 func (db *DB) Search(targets []string) IPackageList {
-	var needles *C.alpm_list_t = nil
-	var ret *C.alpm_list_t = nil
+	var (
+		needles *C.alpm_list_t = nil
+		ret     *C.alpm_list_t = nil
+	)
 
 	for _, str := range targets {
 		needles = C.alpm_list_add(needles, unsafe.Pointer(C.CString(str)))
@@ -171,5 +192,6 @@ func (db *DB) Search(targets []string) IPackageList {
 	}
 
 	C.alpm_list_free(needles)
+
 	return PackageList{(*list)(unsafe.Pointer(ret)), db.handle}
 }

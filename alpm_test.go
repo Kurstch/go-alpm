@@ -4,12 +4,13 @@
 //
 // MIT Licensed. See LICENSE for details.
 
-package alpm
+package alpm_test
 
 import (
-	"fmt"
-	"os"
 	"testing"
+
+	"github.com/Jguer/go-alpm/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -17,28 +18,19 @@ const (
 	dbpath = "/var/lib/pacman"
 )
 
-var h *Handle
+func TestExampleVerCmp(t *testing.T) {
+	t.Parallel()
 
-func init() {
-	var err error
-	h, err = Initialize("/", "/var/lib/pacman")
-	if err != nil {
-		fmt.Printf("failed to Initialize(): %s", err)
-		os.Exit(1)
-	}
-}
-
-func ExampleVerCmp() {
-	fmt.Println(VerCmp("1.0-2", "2.0-1") < 0)
-	fmt.Println(VerCmp("1:1.0-2", "2.0-1") > 0)
-	fmt.Println(VerCmp("2.0.2-2", "2.0.2-2") == 0)
-	// output:
-	// true
-	// true
-	// true
+	assert.Less(t, alpm.VerCmp("1.0-2", "2.0-1"), 0)
+	assert.Equal(t, alpm.VerCmp("2.0.2-2", "2.0.2-2"), 0)
+	assert.Greater(t, alpm.VerCmp("1:1.0-2", "2.0-1"), 0)
 }
 
 func TestRevdeps(t *testing.T) {
+	t.Parallel()
+
+	h, _ := alpm.Initialize(root, dbpath)
+
 	db, _ := h.LocalDB()
 	pkg := db.Pkg("glibc")
 	for i, pkgname := range pkg.ComputeRequiredBy() {
@@ -51,6 +43,9 @@ func TestRevdeps(t *testing.T) {
 }
 
 func TestLocalDB(t *testing.T) {
+	t.Parallel()
+	h, _ := alpm.Initialize(root, dbpath)
+
 	defer func() {
 		if recover() != nil {
 			t.Errorf("local db failed")
@@ -70,6 +65,9 @@ func TestLocalDB(t *testing.T) {
 }
 
 func TestRelease(t *testing.T) {
+	t.Parallel()
+	h, _ := alpm.Initialize(root, dbpath)
+
 	if err := h.Release(); err != nil {
 		t.Error(err)
 	}

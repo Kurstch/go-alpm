@@ -16,11 +16,11 @@ import "unsafe"
 // SyncNewVersion checks if there is a new version of the
 // package in a given DBlist.
 func (pkg *Package) SyncNewVersion(l IDBList) IPackage {
-	ptr := C.alpm_sync_get_new_version(pkg.pmpkg,
-		(*C.alpm_list_t)(unsafe.Pointer(l.(*DBList).list)))
+	ptr := C.alpm_sync_get_new_version(pkg.pmpkg, (*C.alpm_list_t)(unsafe.Pointer(l.(*DBList).list)))
 	if ptr == nil {
 		return nil
 	}
+
 	return &Package{ptr, l.(*DBList).handle}
 }
 

@@ -14,6 +14,7 @@ import (
 // Example "glibc>=2.12"
 func (l DBList) FindSatisfier(depstring string) (IPackage, error) {
 	cDepString := C.CString(depstring)
+
 	defer C.free(unsafe.Pointer(cDepString))
 
 	pkgList := (*C.struct___alpm_list_t)(unsafe.Pointer(l.list))
@@ -31,6 +32,7 @@ func (l DBList) FindSatisfier(depstring string) (IPackage, error) {
 // FindSatisfier finds a package that satisfies depstring from PkgList
 func (l PackageList) FindSatisfier(depstring string) (IPackage, error) {
 	cDepString := C.CString(depstring)
+
 	defer C.free(unsafe.Pointer(cDepString))
 
 	pkgList := (*C.struct___alpm_list_t)(unsafe.Pointer(l.list))

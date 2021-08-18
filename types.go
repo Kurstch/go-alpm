@@ -13,7 +13,6 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"unsafe"
 )
 
@@ -73,6 +72,7 @@ func convertFile(file *C.alpm_file_t) (File, error) {
 	if file == nil {
 		return File{}, errors.New("no file")
 	}
+
 	return File{
 		Name: C.GoString(file.name),
 		Size: int64(file.size),
@@ -84,19 +84,14 @@ func convertFilelist(files *C.alpm_filelist_t) []File {
 	size := int(files.count)
 	items := make([]File, size)
 
-	rawItems := reflect.SliceHeader{
-		Len:  size,
-		Cap:  size,
-		Data: uintptr(unsafe.Pointer(files.files)),
-	}
-
-	cFiles := *(*[]C.alpm_file_t)(unsafe.Pointer(&rawItems)) //nolint
+	cFiles := unsafe.Slice(files.files, size)
 
 	for i := 0; i < size; i++ {
 		if file, err := convertFile(&cFiles[i]); err == nil {
 			items[i] = file
 		}
 	}
+
 	return items
 }
 
@@ -115,6 +110,7 @@ func (l *list) forEach(f func(unsafe.Pointer) error) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -123,6 +119,7 @@ func (l *list) Len() int {
 	for ; l != nil; l = l.Next {
 		count++
 	}
+
 	return count
 }
 
@@ -146,6 +143,7 @@ func (l StringList) Slice() []string {
 		slice = append(slice, s)
 		return nil
 	})
+
 	return slice
 }
 
@@ -173,6 +171,7 @@ func (l BackupList) Slice() (slice []BackupFile) {
 		slice = append(slice, f)
 		return nil
 	})
+
 	return
 }
 

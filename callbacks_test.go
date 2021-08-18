@@ -1,7 +1,9 @@
-package alpm
+package alpm_test
 
 import (
 	"testing"
+
+	"github.com/Jguer/go-alpm/v2"
 )
 
 type Cnt struct {
@@ -9,10 +11,16 @@ type Cnt struct {
 }
 
 func TestCallbacks(t *testing.T) {
-	h, _ := Initialize("/", "/var/lib/pacman")
+	t.Parallel()
+	h, er := alpm.Initialize(root, dbpath)
+	defer h.Release()
+	if er != nil {
+		t.Errorf("Failed at alpm initialization: %s", er)
+	}
+
 	cnt := &Cnt{cnt: 0}
 
-	h.SetLogCallback(func(ctx interface{}, lvl LogLevel, msg string) {
+	h.SetLogCallback(func(ctx interface{}, lvl alpm.LogLevel, msg string) {
 		cnt := ctx.(*Cnt)
 		cnt.cnt++
 	}, cnt)

@@ -57,6 +57,7 @@ func (l PackageList) Slice() []IPackage {
 		slice = append(slice, p)
 		return nil
 	})
+
 	return slice
 }
 
@@ -93,6 +94,7 @@ func (l DependList) Slice() []Depend {
 		slice = append(slice, dep)
 		return nil
 	})
+
 	return slice
 }
 
@@ -141,6 +143,7 @@ func (pkg *Package) DB() IDB {
 	if ptr == nil {
 		return nil
 	}
+
 	return &DB{ptr, pkg.handle}
 }
 
@@ -272,14 +275,18 @@ func (pkg *Package) Version() string {
 func (pkg *Package) ComputeRequiredBy() []string {
 	result := C.alpm_pkg_compute_requiredby(pkg.pmpkg)
 	requiredby := make([]string, 0)
+
 	for i := (*list)(unsafe.Pointer(result)); i != nil; i = i.Next {
 		defer C.free(unsafe.Pointer(i))
+
 		if i.Data != nil {
 			defer C.free(i.Data)
+
 			name := C.GoString((*C.char)(i.Data))
 			requiredby = append(requiredby, name)
 		}
 	}
+
 	return requiredby
 }
 
@@ -287,14 +294,18 @@ func (pkg *Package) ComputeRequiredBy() []string {
 func (pkg *Package) ComputeOptionalFor() []string {
 	result := C.alpm_pkg_compute_optionalfor(pkg.pmpkg)
 	optionalfor := make([]string, 0)
+
 	for i := (*list)(unsafe.Pointer(result)); i != nil; i = i.Next {
 		defer C.free(unsafe.Pointer(i))
+
 		if i.Data != nil {
 			defer C.free(i.Data)
+
 			name := C.GoString((*C.char)(i.Data))
 			optionalfor = append(optionalfor, name)
 		}
 	}
+
 	return optionalfor
 }
 

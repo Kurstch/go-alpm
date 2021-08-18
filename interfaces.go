@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// IPackage is an interface type for alpm.Package
+// IPackage is an interface type for alpm.Package.
 type IPackage interface {
 	FileName() string
 	Base() string
@@ -78,7 +78,7 @@ type IPackage interface {
 	Type() string
 }
 
-// IPackageList exports the alpm.PackageList symbols
+// IPackageList exports the alpm.PackageList symbols.
 type IPackageList interface {
 	// ForEach executes an action on each package of the PackageList.
 	ForEach(func(IPackage) error) error
@@ -90,7 +90,7 @@ type IPackageList interface {
 	FindSatisfier(string) (IPackage, error)
 }
 
-// IDB is an interface type for alpm.DB
+// IDB is an interface type for alpm.DB.
 type IDB interface {
 	Unregister() error
 	// Name returns name of the db
@@ -110,7 +110,7 @@ type IDB interface {
 	Search([]string) IPackageList
 }
 
-// IDBList interfaces alpm.DBList
+// IDBList interfaces alpm.DBList.
 type IDBList interface {
 	// ForEach executes an action on each DB.
 	ForEach(func(IDB) error) error
