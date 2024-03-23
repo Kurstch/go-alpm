@@ -197,7 +197,7 @@ func (db *DB) Search(targets []string) IPackageList {
 		needles = C.alpm_list_add(needles, unsafe.Pointer(C.CString(str)))
 	}
 
-	ok := C.alpm_db_search(db.ptr, needles, &ret) //nolint
+	ok := C.alpm_db_search(db.ptr, needles, &ret)
 	if ok != 0 {
 		return PackageList{nil, db.handle}
 	}
@@ -205,4 +205,16 @@ func (db *DB) Search(targets []string) IPackageList {
 	C.alpm_list_free(needles)
 
 	return PackageList{(*list)(unsafe.Pointer(ret)), db.handle}
+}
+
+// PkgCachebyGroup returns a PackageList of packages belonging to a group
+func (l DBList) FindGroupPkgs(name string) IPackageList {
+	cName := C.CString(name)
+
+	defer C.free(unsafe.Pointer(cName))
+
+	pkglist := (*C.struct__alpm_list_t)(unsafe.Pointer(l.list))
+	pkgcache := (*list)(unsafe.Pointer(C.alpm_find_group_pkgs(pkglist, cName)))
+
+	return PackageList{pkgcache, l.handle}
 }
